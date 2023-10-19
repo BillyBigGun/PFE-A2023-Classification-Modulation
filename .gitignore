@@ -1,0 +1,8 @@
+# Ignore all files in these directories
+data/raw/*
+data/processed/*
+
+# Except for the .gitkeep file
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+

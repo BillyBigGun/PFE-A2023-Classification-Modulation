@@ -1,0 +1,2 @@
+git+https://github.com/AllenDowney/ThinkDSP.git#egg=ThinkDSP
+git+https://github.com/NVlabs/sionna.git#egg=sionna
