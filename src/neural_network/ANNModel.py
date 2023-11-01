@@ -1,0 +1,2 @@
+class ANNModel(NNModel):
+    
