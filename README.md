@@ -1,4 +1,9 @@
-# Git commands
+# Git
+## Personnal Access Token
+Before being able to push or pull, you must create a personnal access token. It is used instead of the password for more security. See [Personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
+
+## Commands
+This is the git command list:
 ```bash
 git clone <repo>
 git add .                   #add all the changes you made
@@ -20,7 +25,7 @@ To use the classes in ThinkDSP, import it to you script with:
 ```python
 from lib.ThinkDSP.code.thinkdsp import Wave
 ```
-We imported wave as an example, but change wave for the class you want to import
+Change **\<Wave\>** for the class you want to import
 
 # UML drawings
 ## Waveform
