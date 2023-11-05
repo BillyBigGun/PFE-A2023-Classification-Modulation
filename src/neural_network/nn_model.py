@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class NNModel(nn.Module):
-    def __init__(self, input_size, hidden_sizes, output_size, learning_rate, activation=F.relu):
+    def __init__(self, input_size, hidden_sizes, output_size, learning_rate, activation=F.relu, normalize_batch=True):
         super(NNModel, self).__init__()
         
         self.layers = None
@@ -15,11 +15,13 @@ class NNModel(nn.Module):
         self.output_size = output_size
         self.activation = activation
         self.learning_rate = learning_rate
+        self.normalize_batch = normalize_batch
 
     @abstractmethod
     def forward(self, input):
         pass # must be override
 
+    
     def train_model(self, train_loader, epochs):
         criterion = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -61,7 +63,7 @@ class NNModel(nn.Module):
             outputs = self(input)
             
             # Convert outputs to probabilities to get the predicted class
-            probabilities = torch.softmax(outputs, dim=1) # dim=1 softmax for each row of the ouput. It needs to sum to 1
+            probabilities = torch.softmax(outputs, dim=1) # dim=1: softmax for each row of the ouput. The addition of each row needs to sum to 1
             predicted_classes = torch.max(probabilities, dim=1)[1]
 
         # Return the predictions

@@ -15,7 +15,8 @@ class ANNModel(NNModel):
         # Define the fully connected layers
         for i in range(1,len(hidden_sizes)):
             layers.append(nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
-
+            # layers.append(nn.BatchNorm1D(hidden_sizes[i]))
+            
         # Add the output layer
         layers.append(nn.Linear(hidden_sizes[i], output_size))
         # Store all layers in a ModuleList
