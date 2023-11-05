@@ -1404,6 +1404,20 @@ class SquareSignal(Sinusoid):
         ys = self.amp * np.sign(unbias(frac))
         return ys
 
+class SquareSignal_test(Sinusoid):
+    """Represents a square signal."""
+
+    def __init__(self, freq=440, amp=1.0, offset=0, duty_cycle=0.5):
+        super().__init__(freq, amp, offset)
+        self.duty_cycle = duty_cycle
+
+    def evaluate(self, ts):
+        """Evaluates the signal at the given times."""
+        ts = np.asarray(ts)
+        cycles = self.freq * ts + self.offset / PI2
+        frac, _ = np.modf(cycles)
+        ys = self.amp * (frac < self.duty_cycle).astype(float)
+        return ys - self.amp / 2.0  # Center the signal around 0
 
 class SawtoothSignal(Sinusoid):
     """Represents a sawtooth signal."""

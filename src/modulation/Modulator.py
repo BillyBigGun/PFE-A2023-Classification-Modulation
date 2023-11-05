@@ -1,39 +1,70 @@
-from ModulatorComparator import Wave, CosSignal, SinSignal, decorate
+from ModulatorComparator import CosSignal, SinSignal, SquareSignal
+from ModulatorComparator import SquareSignal_test
 
+from ModulatorComparator import decorate
+from ModulatorComparator import Wave as wave
+from ModulatorComparator import Signal as signal
 import matplotlib.pyplot as plt
+import numpy as np
+import time, random, math
 
+X_LABEL = 'Time (s)'
+Y_LABEL = 'Amplitude'
 
-cos_sig = CosSignal(freq=440, amp=1.0, offset=0)
-sin_sig = SinSignal(freq=880, amp=0.5, offset=0)
+X_LABEL_FREQ = 'Frequence (Hz)'
 
-cos_sig.plot()
-decorate(xlabel='Time (s)')
+def simulate_pam():
 
-sin_sig.plot()
-decorate(xlabel='Time (s)')
+    signal_m = CosSignal(freq=500)
+    duration = signal_m.period*10
+    wave_m = signal_m.make_wave(duration, framerate=10000)
+    plot_temporel(wave_m, title='Domaine temporel')
 
-plt.show()
+    signal_c = CosSignal(freq=500)
+    dure = signal_c.period*10
+    wave_c = signal_c.make_wave(dure, framerate=10000)
+    plot_frequentiel(wave_c, title='Domaine frequentiel porteuse')
+    
+    modulated = wave_m * wave_c
+    plot_temporel(modulated, title='Domaine frequentiel wave module')
+    plot_frequentiel(modulated, title='Domaine frequentiel wave module')
 
+def simulate_pwm():
+    """
+    Simulates PWM and plots a square wave with the given parameters.
+    """
 
-class modulator:
-    def PWM_mod():
-        cos(s)
+    duty_cycle_value = random_zero_to_one()
+    square_signal = SquareSignal_test(freq=1, amp=2, offset=0, duty_cycle=duty_cycle_value)
+    dur = square_signal.period*10
+    wave = square_signal.make_wave(dur, framerate=10000)
+    plot_temporel(wave, title='PWM Signal - Duty Cycle: {:.2f}%'.format(duty_cycle_value))
 
-    def PAM_mod():
-        filename = '105977__wcfl10__favorite-station.wav'
-        wave = thinkdsp.read_wave(filename)
-        wave.unbias()
-        wave.normalize()
-        
-        #And here’s the carrier:
-        carrier_sig = thinkdsp.CosSignal(freq=10000)
-        carrier_wave = carrier_sig.make_wave(duration=wave.duration, framerate=wave.framerate)
+def simulate_psk():
+    print('fuck')
 
-        #We can multiply them using the * operator, which multiplies the wave arrays elementwise:
-        modulated = wave * carrier_wave
-        modulated.plot()
-        decorate(xlabel='Time (s)')
-        plt.show()
+def random_zero_to_one():
+    return round(random.random(), 2)
 
-    def PSK():
-        tan(x)
+def randomize_frequence(min_frequence, max_frequence):
+    return random.uniform(min_frequence, max_frequence)
+
+def plot_temporel(wave, title):
+    wave.plot()
+    decorate(xlabel=X_LABEL)
+    decorate(ylabel=Y_LABEL)
+    decorate(title=title)
+    plt.grid(True)
+    plt.show()
+
+def plot_frequentiel(wave, title):
+    spectrum = wave.make_spectrum()
+    spectrum.plot()
+    decorate(xlabel=X_LABEL_FREQ)
+    decorate(ylabel=Y_LABEL)
+    decorate(title=title)
+    plt.grid(True)
+    plt.show()
+
+simulate_pam()
+simulate_pwm()
