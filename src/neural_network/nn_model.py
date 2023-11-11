@@ -5,17 +5,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class NNModel(nn.Module):
-    def __init__(self, input_size, hidden_sizes, output_size, learning_rate, activation=F.relu, normalize_batch=True):
+    def __init__(self, input_size, output_size, learning_rate):
         super(NNModel, self).__init__()
         
         self.layers = None
 
         self.input_size = input_size
-        self.hidden_sizes = hidden_sizes
         self.output_size = output_size
-        self.activation = activation
         self.learning_rate = learning_rate
-        self.normalize_batch = normalize_batch
 
     @abstractmethod
     def forward(self, input):
@@ -47,9 +44,9 @@ class NNModel(nn.Module):
 
                 # print statistics
                 running_loss += loss.item()
-                if i % 2000 == 1999:    # print every 2000 mini-batches
-                    print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss / 2000))
-                    running_loss = 0.0
+                #if i % 2000 == 1999:    # print every 2000 mini-batches
+                print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss))
+                running_loss = 0.0
 
         print('Finished Training')
 
