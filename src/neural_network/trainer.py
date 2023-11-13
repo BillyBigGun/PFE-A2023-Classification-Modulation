@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from nn_model import NNModel
 from ann_model import ANNModel
 from cnn_model import CNNModel
+from t_cnn_model import TCNModel
 from waveform_batch_manager import WaveformBatchManager
 
 MAX_EPOCH = 60
@@ -48,7 +49,8 @@ class Trainer():
 
         # Create the train set
         #self.train_set = WaveformBatchManager(data_dir)
-        self.train_set = self.rand_train_set()
+        #self.train_set = self.rand_train_set_cnn()
+        self.train_set = self.rand_train_set_t_cnn()
 
         # Create the train loader
         self.train_loader = torch.utils.data.DataLoader(self.train_set, batch_size=batch_size_, shuffle=shuffle_, num_workers=num_workers_)
@@ -57,12 +59,20 @@ class Trainer():
         self.model.train_model(self.train_loader, epochs)
         return
     
-    def rand_train_set(self):
+    def rand_train_set_cnn(self):
         features = torch.randn(100, 1, 128, 4)
         labels = torch.randint(0,2,(100,))
 
         trainset = torch.utils.data.TensorDataset(features, labels)
         return trainset
+
+    def rand_train_set_t_cnn(self):
+        features = torch.randn(100, 4, 128)
+        labels = torch.randint(0,2,(100,))
+
+        trainset = torch.utils.data.TensorDataset(features, labels)
+        return trainset
+
 
 hyperparameters_ann = dict(
     input_size = 128,
@@ -72,6 +82,9 @@ hyperparameters_ann = dict(
     activation = F.relu
 )
 
+nb_filter_cnn_A = 4
+nb_filter_cnn_B = 4
+nb_filter_cnn_C = 4
 # in 4x128 --> out before fc = 2x16 = 32
 hyperparameters_cnn = {
     'input_size': 128,
@@ -79,42 +92,83 @@ hyperparameters_cnn = {
     'learning_rate': 3e-4,
     'blocks': [
         [ 
-            {'conv': {'in_channels': 1, 'out_channels': 2, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1, 0)},
-             'batch_norm': {'num_features': 2},
+            {'conv': {'in_channels': 1, 'out_channels': nb_filter_cnn_A, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1, 0)},
+             'batch_norm': {'num_features': nb_filter_cnn_A},
              'activation': 'relu'},
-            {'conv': {'in_channels': 2, 'out_channels': 1, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1, 0)},
+            {'conv': {'in_channels': nb_filter_cnn_A, 'out_channels': nb_filter_cnn_A, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1, 0)},
+             'batch_norm': {'num_features': nb_filter_cnn_A},
+             'activation': 'relu'},
+            {'conv': {'in_channels': nb_filter_cnn_A, 'out_channels': nb_filter_cnn_A, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1, 0)},
+             'batch_norm': {'num_features': nb_filter_cnn_A},
+             'activation': 'relu'},
+            {'conv': {'in_channels': nb_filter_cnn_A, 'out_channels': nb_filter_cnn_A, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1, 0)},
+             'batch_norm': {'num_features': nb_filter_cnn_A},
+             'activation': 'relu'},
+            {'conv': {'in_channels': nb_filter_cnn_A, 'out_channels': 1, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1, 0)},
              'batch_norm': {'num_features': 1},
              'activation': 'relu'},
             {'pool': {'type': 'max', 'kernel_size': (2, 1), 'stride': (2, 1)}}
         ],
         [
-            {'conv': {'in_channels': 1, 'out_channels': 2, 'kernel_size': (3, 3), 'stride': 1, 'padding': 1},
-             'batch_norm': {'num_features': 2},
+            {'conv': {'in_channels': 1, 'out_channels': nb_filter_cnn_B, 'kernel_size': (3, 3), 'stride': 1, 'padding': 1},
+             'batch_norm': {'num_features': nb_filter_cnn_B},
              'activation': 'relu'},
-            {'conv': {'in_channels': 2, 'out_channels': 1, 'kernel_size': (3, 3), 'stride': 1, 'padding': 1},
+            {'conv': {'in_channels': nb_filter_cnn_B, 'out_channels': nb_filter_cnn_B, 'kernel_size': (3, 3), 'stride': 1, 'padding': 1},
+             'batch_norm': {'num_features': nb_filter_cnn_B},
+             'activation': 'relu'},
+            {'conv': {'in_channels': nb_filter_cnn_B, 'out_channels': nb_filter_cnn_B, 'kernel_size': (3, 3), 'stride': 1, 'padding': 1},
+             'batch_norm': {'num_features': nb_filter_cnn_B},
+             'activation': 'relu'},
+            {'conv': {'in_channels': nb_filter_cnn_B, 'out_channels': nb_filter_cnn_B, 'kernel_size': (3, 3), 'stride': 1, 'padding': 1},
+             'batch_norm': {'num_features': nb_filter_cnn_B},
+             'activation': 'relu'},
+            {'conv': {'in_channels': nb_filter_cnn_B, 'out_channels': 1, 'kernel_size': (3, 3), 'stride': 1, 'padding': 1},
              'batch_norm': {'num_features': 1},
              'activation': 'relu'},
             {'pool': {'type': 'max', 'kernel_size': (2, 1), 'stride': (2, 1)}}
         ],
         [
-            {'conv': {'in_channels': 1, 'out_channels': 2, 'kernel_size': (3,1), 'stride': 1, 'padding': (1,0)},
-            'batch_norm': {'num_features': 2},
+            {'conv': {'in_channels': 1, 'out_channels': nb_filter_cnn_C, 'kernel_size': (3,1), 'stride': 1, 'padding': (1,0)},
+            'batch_norm': {'num_features': nb_filter_cnn_C},
              'activation': 'relu'},
-            {'conv': {'in_channels': 2, 'out_channels': 1, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1,0)},
+            {'conv': {'in_channels': nb_filter_cnn_C, 'out_channels': nb_filter_cnn_C, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1,0)},
+             'batch_norm': {'num_features': nb_filter_cnn_C},
+             'activation': 'relu'},
+            {'conv': {'in_channels': nb_filter_cnn_C, 'out_channels': nb_filter_cnn_C, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1,0)},
+             'batch_norm': {'num_features': nb_filter_cnn_C},
+             'activation': 'relu'},
+            {'conv': {'in_channels': nb_filter_cnn_C, 'out_channels': nb_filter_cnn_C, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1,0)},
+             'batch_norm': {'num_features': nb_filter_cnn_C},
+             'activation': 'relu'},
+            {'conv': {'in_channels': nb_filter_cnn_C, 'out_channels': 1, 'kernel_size': (3, 1), 'stride': 1, 'padding': (1,0)},
              'batch_norm': {'num_features': 1},
              'activation': 'relu'},
             {'pool': {'type': 'max', 'kernel_size': (2, 2), 'stride': (2, 2)}}
         ],
         [
+            # !IMPORTANT in_features needs to be calculated correctly
             {'fc':{'in_features': 32, 'out_features': 2}},
         ],
     ]
+}
+
+
+hyperparameters_t_cnn = {
+    'input_size': 4,  # number of input channels
+    'num_channels': [8,8,8,8,8, 8,8,8,8,8, 8,8,8,8,8 ],  # number of output channels for each level of TCN blocks
+    'output_size': 2,
+    'kernel_size': 3,  # size of the convolutional kernel
+    'learning_rate' : 3e-4,
+    'dropout': 0.2,  # dropout rate
 }
 
 if __name__ == "__main__":
     #trainer_ann = Trainer(ANNModel, hyperparameters_ann)
     #trainer_ann.train(32)
 
-    trainer_cnn = Trainer(CNNModel, hyperparameters_cnn)
+    #trainer_cnn = Trainer(CNNModel, hyperparameters_cnn)
     #print(trainer_cnn.model)
-    trainer_cnn.train(5)
+    #trainer_cnn.train(5)
+
+    trainer_tcnn = Trainer(TCNModel, hyperparameters_t_cnn)
+    trainer_tcnn.train(5)

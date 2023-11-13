@@ -5,8 +5,7 @@ from nn_model import NNModel
 
 class CNNModel(NNModel):
     def __init__(self, hyperparameters):
-        super(CNNModel, self).__init__(hyperparameters['input_size'], hyperparameters['output_size'], 
-                                       hyperparameters['learning_rate'])
+        super(CNNModel, self).__init__(hyperparameters['input_size'], hyperparameters['output_size'], hyperparameters['learning_rate'])
         self.conv_layers = nn.ModuleList()
         self.fc_layers = nn.ModuleList()
 
