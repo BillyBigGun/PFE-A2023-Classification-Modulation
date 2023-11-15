@@ -35,7 +35,6 @@ class PAM:
 
         # Perform pulse amplitude modulation
         self.pam_wave = self.message_wave * self.carrier_wave
-        #self.pam_wave.normalize()
         
         # Extract the sample arrays for plotting
         self.ts = self.message_wave.ts
@@ -267,13 +266,3 @@ class PWM:
             csv_writer.writerows(data)
 
         print(f"CSV file '{filename}' written successfully.")
-
-
-pam_instance = PAM(message_frequency=5, message_amplitude=5, carrier_amplitude=5, carrier_frequency=50, duration=1, framerate=10000, wave_type=0)
-pam_instance.add_gaussian_noise(amp=3)  # Add Gaussian noise with amplitude 0.1
-pam_instance.plot_signals_with_and_without_noise()  # Plot the signals
-
-pam_instance = PWM(message_frequency=5, message_amplitude=5, carrier_amplitude=2, carrier_frequency=50, duration=1, framerate=10000, wave_type=0)
-pam_instance.plot()  # Plot the signals
-pam_instance.add_gaussian_noise(amp=0.1)  # Add Gaussian noise with amplitude 0.1
-pam_instance.plot_signals_with_and_without_noise()  # Plot the signals
