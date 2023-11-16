@@ -24,7 +24,7 @@ class PAM:
         if wave_type == 0:
             self.message_signal = SinSignal(amp=message_amplitude, freq=message_frequency)
         elif wave_type == 1:
-            self.message_signal = SquareSignal(amp=message_amplitude, freq=message_frequency)
+            self.message_signal = TriangleSignal(amp=message_amplitude, freq=message_frequency)
         
         # Create the carrier signal (square wave)
         self.carrier_signal = SquareSignal(amp = carrier_amplitude, freq=carrier_frequency)
@@ -265,4 +265,4 @@ class PWM:
             csv_writer.writerow(headers)
             csv_writer.writerows(data)
 
-        print(f"CSV file '{filename}' written successfully.")
+        #print(f"CSV file '{filename}' written successfully.")
