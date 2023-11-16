@@ -1,6 +1,7 @@
 # Ignore all files in these directories
 data/raw/*
 data/processed/*
+src/neural_network/__pycache__/*
 
 # Except for the .gitkeep file
 !data/raw/.gitkeep
