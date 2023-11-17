@@ -8,7 +8,7 @@ from ann_model import ANNModel
 from cnn_model import CNNModel
 from t_cnn_model import TCNModel
 from waveform_batch_manager import WaveformBatchManager
-from hyperparameter_manager import HyparameterManager
+from hyperparameter_manager import HyperparameterManager
 
 MAX_EPOCH = 60
 MINI_BATCH_SIZE = 100
@@ -40,44 +40,55 @@ DATA_LOCATION = './data/raw'
 
 
 class Trainer():
-    def __init__(self, model_class : NNModel, hyperparameters, data_dir='data/raw', batch_size_=32, shuffle_=True, num_workers_=2):
+    def __init__(self, model_class : NNModel, hyperparameters, data_dir, batch_size_=32, shuffle_=True, num_workers_=2, transform_=None):
         # create the NN model
         self.model = model_class(hyperparameters)
-        # self.transform = transforms.Compose([
-        #     transforms.ToTensor(),
-        #     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Example normalization
-        # ])
+        self.nb_input = hyperparameters['input_size']
+        self.batch_size = batch_size_
+        self.shuffle = shuffle_
+        self.num_workers = num_workers_
 
         # Create the train set
-        #self.train_set = WaveformBatchManager(data_dir)
+        self.train_set = WaveformBatchManager(data_dir, self.nb_input, eval_ratio=0.1, transform=transform_)
         #self.train_set = self.rand_train_set_cnn()
-        self.train_set = self.rand_train_set_t_cnn()
+        #self.train_set = self.rand_train_set_t_cnn()
 
-        # Create the train loader
-        self.train_loader = torch.utils.data.DataLoader(self.train_set, batch_size=batch_size_, shuffle=shuffle_, num_workers=num_workers_)
+        
 
     def train(self, epochs):
+        # Create the train loader
+        self.train_set.training_mode()
+        self.train_loader = torch.utils.data.DataLoader(self.train_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last = True)
+        
         self.model.train_model(self.train_loader, epochs)
         return
-    
-    def rand_train_set_cnn(self):
-        features = torch.randn(100, 1, 128, 4)
-        labels = torch.randint(0,2,(100,))
 
-        trainset = torch.utils.data.TensorDataset(features, labels)
-        return trainset
+    def eval(self):
+        self.train_set.eval_mode()
+        self.train_loader = torch.utils.data.DataLoader(self.train_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last = True)
 
-    def rand_train_set_t_cnn(self):
-        features = torch.randn(100, 4, 128)
-        labels = torch.randint(0,2,(100,))
+        accuracy = self.model.evaluate(self.train_loader)
+        print(f"Accuracy : {accuracy}")    
 
-        trainset = torch.utils.data.TensorDataset(features, labels)
-        return trainset
+
+    # def rand_train_set_cnn(self):
+    #     features = torch.randn(100, 1, 128, 4)
+    #     labels = torch.randint(0,2,(100,))
+
+    #     trainset = torch.utils.data.TensorDataset(features, labels)
+    #     return trainset
+
+    # def rand_train_set_t_cnn(self):
+    #     features = torch.randn(100, 4, 128)
+    #     labels = torch.randint(0,2,(100,))
+
+    #     trainset = torch.utils.data.TensorDataset(features, labels)
+    #     return trainset
 
 
 
 if __name__ == "__main__":
-    manager = HyparameterManager()
+    manager = HyperparameterManager()
     #trainer_ann = Trainer(ANNModel, manager.get_ann_parameters())
     #trainer_ann.train(32)
 

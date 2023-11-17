@@ -44,9 +44,9 @@ class NNModel(nn.Module):
 
                 # print statistics
                 running_loss += loss.item()
-                #if i % 2000 == 1999:    # print every 2000 mini-batches
-                print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss))
-                running_loss = 0.0
+                if i % 20 == 19:    # print every 2000 mini-batches
+                    print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss))
+                    running_loss = 0.0
 
         print('Finished Training')
 
@@ -66,7 +66,7 @@ class NNModel(nn.Module):
         # Return the predictions
         return predicted_classes   
 
-    def evaluate(self, test_data, test_labels):
+    def evaluate(self, train_loader):
         """
         Evaluate the model's performance on the test data.
 
@@ -79,12 +79,15 @@ class NNModel(nn.Module):
         """
         self.eval()  # Set the model to evaluation mode.
         with torch.no_grad():  # Turn off gradients for validation, saves memory and computations
-            outputs = self(test_data)
+            for i, data in enumerate(train_loader, 0):
+                # get the inputs; data is a list of [inputs, labels]
+                test_input, test_labels = data
+                outputs = self(test_input)
             
-            # The predicted class is the one with the highest value
-            _, predicted_classes = torch.max(outputs, dim=1)
-            correct_counts = (predicted_classes == test_labels).sum().item()
-            accuracy = correct_counts / test_labels.size(0) 
+                # The predicted class is the one with the highest value
+                _, predicted_classes = torch.max(outputs, dim=1)
+                correct_counts = (predicted_classes == test_labels).sum().item()
+                accuracy = correct_counts / test_labels.size(0) 
 
         # Switch back to train mode
         self.train()

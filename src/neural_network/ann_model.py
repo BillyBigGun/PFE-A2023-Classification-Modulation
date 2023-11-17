@@ -4,11 +4,15 @@ import torch.nn.functional as F
 from nn_model import NNModel
 
 class ANNModel(NNModel):
-    def __init__(self, input_size, hidden_sizes, output_size, learning_rate, activation_function=F.relu, normalize_batch=True):
-        super(ANNModel, self).__init__(input_size, output_size, learning_rate)
+    def __init__(self, hyperparameters):
+        super(ANNModel, self).__init__(hyperparameters['input_size'], hyperparameters['output_size'], hyperparameters['learning_rate'])
 
-        self.activation = activation_function
-        self.normalize_batch = normalize_batch
+        input_size = hyperparameters['input_size']
+        hidden_sizes = hyperparameters['hidden_sizes']
+        output_size = hyperparameters['output_size']
+
+        self.activation = hyperparameters['activation']
+        self.normalize_batch = hyperparameters['normalize_batch']
       
         layers = []
         batch_norm_list = []
@@ -21,7 +25,7 @@ class ANNModel(NNModel):
         # Define the fully connected layers
         for i in range(1,len(hidden_sizes)):
             layers.append(nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
-            if normalize_batch:
+            if self.normalize_batch:
                 batch_norm_list.append(nn.BatchNorm1d(hidden_sizes[i]))
 
         # Add the output layer
@@ -31,12 +35,14 @@ class ANNModel(NNModel):
         self.batch_norm_list = nn.ModuleList(batch_norm_list)
 
     def forward(self, input):
-        # Pass data through each layers
-        for layer in self.layers[:-1]:
+        #input = input.float()
+        for i, layer in enumerate(self.layers[:-1]):
             input = layer(input)
             if self.normalize_batch:
-                input = self.batch_norm_list(input) 
+                # Apply the corresponding batch normalization layer
+                input = self.batch_norm_list[i](input)
             input = self.activation(input)
+            
         output = self.layers[-1](input)
         return output
 
