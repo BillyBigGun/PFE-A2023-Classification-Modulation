@@ -11,30 +11,31 @@ class CNNModel(NNModel):
 
         # Retrieve the configuration for each block from the config dictionary
         for block in hyperparameters['blocks']:
-            for layer in block:
-                # Conv block
-                if 'conv' in layer:
-                    conv_layer = nn.Conv2d(**layer['conv'])
-                    self.conv_layers.append(conv_layer)
-                    if 'batch_norm' in layer:
-                        bn_layer = nn.BatchNorm2d(**layer['batch_norm'])
-                        self.conv_layers.append(bn_layer)
-                    if 'activation' in layer and layer['activation'] == 'relu':
-                        self.conv_layers.append(nn.ReLU())
-
-                # Pool block
-                elif 'pool' in layer:
-                    pool_type = layer['pool']['type']
-                    if pool_type == 'max':
-                        pool_layer = nn.MaxPool2d(layer['pool']['kernel_size'], layer['pool']['stride'])
-                    elif pool_type == 'avg':
-                        pool_layer = nn.AvgPool2d(layer['pool']['kernel_size'], layer['pool']['stride'])
-                    self.conv_layers.append(pool_layer)
-
-                # FC block
-                elif 'fc' in layer:
-                    # Add a fully connected layer
-                    self.fc_layers.append(nn.Linear(**layer['fc']))
+            for element in block:
+                # Check if element is an array (list of layers)
+                if isinstance(element, list):
+                    for layer in element:
+                        if 'conv' in layer:
+                            conv_layer = nn.Conv2d(**layer['conv'])
+                            self.conv_layers.append(conv_layer)
+                            if 'batch_norm' in layer:
+                                bn_layer = nn.BatchNorm2d(**layer['batch_norm'])
+                                self.conv_layers.append(bn_layer)
+                            if 'activation' in layer and layer['activation'] == 'relu':
+                                self.conv_layers.append(nn.ReLU())
+                else:
+                    # Process single layer (pool or fc)
+                    layer = element
+                    if 'pool' in layer:
+                        pool_type = layer['pool']['type']
+                        if pool_type == 'max':
+                            pool_layer = nn.MaxPool2d(layer['pool']['kernel_size'], layer['pool']['stride'])
+                        elif pool_type == 'avg':
+                            pool_layer = nn.AvgPool2dlayer(layer['pool']['kernel_size'], layer['pool']['stride'])
+                        self.conv_layers.append(pool_layer)
+                    elif 'fc' in layer:
+                        self.fc_layers.append(nn.Flatten())
+                        self.fc_layers.append(nn.Linear(**layer['fc']))
 
     def forward(self, x):
         # Pass the input through the convolutional and pooling layers
@@ -43,8 +44,8 @@ class CNNModel(NNModel):
             #print(x.size())
         
         # Flatten the tensor before passing it to the fully connected layers
-        x = torch.flatten(x, 1)
-
+        # x = torch.flatten(x, 1)
+        
         # Pass the flattened output through the fully connected layers
         for layer in self.fc_layers:
             x = layer(x)

@@ -69,7 +69,7 @@ class TCNModel(NNModel):
         x = self.network(x)
         # Assuming x has shape [batch_size, num_channels, sequence_length]
         # Apply global average pooling across the temporal dimension
-        x = x.mean(dim=self.output_size)
+        x = x.mean(dim=2)
         # Pass the result through the linear layer for classification
         return self.linear(x)
 

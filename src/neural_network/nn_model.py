@@ -4,6 +4,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from ray import tune
+import time
+
 class NNModel(nn.Module):
     def __init__(self, input_size, output_size, learning_rate):
         super(NNModel, self).__init__()
@@ -26,7 +29,10 @@ class NNModel(nn.Module):
         # Set the model to training mode
         self.train()
 
+        start_time = time.time()  # Start time of the entire training
+
         for epoch in range(epochs):  # loop over the dataset multiple times
+            epoch_start_time = time.time()  # Start time of the current epoch
             running_loss = 0.0
 
             for i, data in enumerate(train_loader, 0):
@@ -48,7 +54,68 @@ class NNModel(nn.Module):
                     print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss))
                     running_loss = 0.0
 
-        print('Finished Training')
+            epoch_end_time = time.time()  # End time of the current epoch
+            print(f'Epoch {epoch + 1} completed in {epoch_end_time - epoch_start_time:.2f} seconds')
+
+        end_time = time.time()  # End time of the entire training
+        print(f'Finished Training in {end_time - start_time:.8f} seconds')
+
+    def train_tune_model(self, train_loader, epochs):
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+
+        # Set the model to training mode
+        self.train()
+
+        start_time = time.time()  # Start time of the entire training
+
+        for epoch in range(epochs):  # loop over the dataset multiple times
+            epoch_start_time = time.time()  # Start time of the current epoch
+            running_loss = 0.0
+            mini_batch_loss = 0.0
+
+            total = 0
+            correct = 0
+
+
+            for i, data in enumerate(train_loader, 0):
+                # get the inputs; data is a list of [inputs, labels]
+                inputs, labels = data
+
+                # zero the parameter gradients
+                optimizer.zero_grad()
+
+                # forward + backward + optimize
+                outputs = self.forward(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+
+                # print statistics
+                running_loss += loss.item()
+                mini_batch_loss += loss.item()
+
+                # Calcul des prédictions correctes
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+                        
+                if i % 20 == 19:    # print every 2000 mini-batches
+                    print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, mini_batch_loss/20))
+                    mini_batch_loss = 0.0
+
+            epoch_loss = running_loss / len(train_loader)
+            epoch_accuracy = 100 * correct / total
+        
+            # Rapportez les métriques à Ray Tune
+            tune.report(loss=epoch_loss, accuracy=epoch_accuracy)
+        
+            epoch_end_time = time.time()
+            print(f'Epoch {epoch + 1} completed in {epoch_end_time - epoch_start_time:.2f} seconds')
+                    
+
+        end_time = time.time()  # End time of the entire training
+        print(f'Finished Training in {end_time - start_time:.8f} seconds')
 
     def predict(self, input):
         # model in evaluation mode 
@@ -78,6 +145,9 @@ class NNModel(nn.Module):
         float: Accuracy of the model on the test set.
         """
         self.eval()  # Set the model to evaluation mode.
+
+        start_time = time.time()  # Start time of the entire training
+        
         with torch.no_grad():  # Turn off gradients for validation, saves memory and computations
             for i, data in enumerate(train_loader, 0):
                 # get the inputs; data is a list of [inputs, labels]
@@ -91,4 +161,7 @@ class NNModel(nn.Module):
 
         # Switch back to train mode
         self.train()
+        end_time = time.time()  # End time of the entire training
+        print(f'Finished evaluation in {end_time - start_time:.8f} seconds')
+        
         return accuracy      

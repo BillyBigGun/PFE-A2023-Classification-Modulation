@@ -7,14 +7,21 @@ import random
 class WaveformBatchManager(Dataset):
     """Custom Dataset for loading wave signal data"""
 
-    def __init__(self, data_dirs, nb_inputs, eval_ratio=0.1, transform=None):
+    def __init__(self, data_dirs, nb_inputs, max_first_row_=1, max_stride_rows_=1, eval_ratio=0.1, transform=None):
         """
         Args:
             data_dirs: List of directories containing the stored data.
+            nb_inputs: the nb of inputs to be read in the file
+            max_first_row: The starting row that will be read in the file. It is a random number between 1 and this value
+            max_stride_rows: the number of rows to skip between each value read. It is a random number between 0 and this value
+            eval_ratio: the ratio of data kept for evaluation
             transform (callable, optional): Optional transform to be applied on a sample.
         """
         self.file_list = []
         self.file_path = []
+        self.max_first_row = max_first_row_
+        self.max_stride_rows = max_stride_rows_
+        
         for data_dir in data_dirs:
             # Ensure the directory exists
             if not os.path.isdir(data_dir):
@@ -49,18 +56,27 @@ class WaveformBatchManager(Dataset):
         #file_path = os.path.join(self.data_dir, file_name)
         
         # Load only the first 128 data points from the CSV file
-        signal = pd.read_csv(file_name, usecols=[0], nrows=self.nb_inputs, skiprows=1).values.flatten()
+        # Skip rows before the first index and every divisible by the nb_skip_rows_values
+        # these values are random
+        #self.first_row = random.randint(1, self.max_first_row)
+        #self.stride_row = random.randint(1, self.max_stride_rows)
+        signal = pd.read_csv(file_name, usecols=[0], nrows=self.nb_inputs, skiprows=1).values.flatten() # call the skip_rows function
+        # print(signal)
 
         # Convert label 'PAM' to 0 and 'PWM' to 1
         label = 0 if 'PAM' in file_name else 1
 
         if self.transform:
             signal = self.transform(signal)
-
         return torch.from_numpy(signal).float(), label
 
 
-
+    def skip_rows(self, index):
+        if self.first_row < index:
+            if (index + self.first_row) % self.stride_row == 0 : # Skip every row except those divisible by nb_skip_rows
+                #print(f"index : {index}")
+                return False # False = do not skip this row
+        return True
 
 # # Example usage
 # transform = transforms.Compose([

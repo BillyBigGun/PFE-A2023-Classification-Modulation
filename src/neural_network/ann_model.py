@@ -20,7 +20,7 @@ class ANNModel(NNModel):
         # Define the first fully connected layer
         layers.append(nn.Linear(input_size, hidden_sizes[0]))
         if self.normalize_batch:
-            batch_norm_list.append(nn.BatchNorm1d(input_size))
+            batch_norm_list.append(nn.BatchNorm1d(hidden_sizes[0]))
             
         # Define the fully connected layers
         for i in range(1,len(hidden_sizes)):

@@ -70,6 +70,56 @@ class Trainer():
         accuracy = self.model.evaluate(self.train_loader)
         print(f"Accuracy : {accuracy}")    
 
+    def eval(self, dir):
+        """
+        Create a new evaluation set from the directory
+        """
+        self.eval_set = WaveformBatchManager(data_dir, self.nb_input, eval_ratio=1, transform=transform_)
+        self.eval_set.eval_mode()
+        self.train_loader = torch.utils.data.DataLoader(self.eval_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last = True)
+
+        accuracy = self.model.evaluate(self.train_loader)
+        print(f"Accuracy : {accuracy}")    
+
+    def dry_run_model(self, input_shape):
+        """
+        Perform a dry run of the model to check input-output dimensions.
+    
+        Args:
+        model (NNModel): NNModel class that inherit torch.nn.module.
+        input_shape (tuple): The shape of the input tensor excluding the batch size.
+                             For example, for a 1D signal, this might be (1, signal_length).
+    
+        Returns:
+        None. Prints the shape of the tensor at each layer.
+        """
+        # Set the model to evaluation mode to disable layers like dropout and batch normalization
+        self.model.eval()
+    
+        # Create a dummy input tensor with the specified input shape
+        # The first dimension (batch size) is typically 1 for a dry run
+        dummy_input = torch.rand(1, *input_shape)
+    
+        # Print the input shape
+        print(f"Input shape: {dummy_input.shape}")
+
+        # Pass the dummy input through each layer of the model
+        with torch.no_grad():  # Disable gradient computation for efficiency
+            print_layer=True
+            for name, layer in self.model.named_modules():
+                if print_layer:
+                    print(layer)
+                    print_layer = False
+                    
+                # Skip the overall model itself, only apply to layers
+                if name:
+                    if hasattr(layer, 'forward'):  # Check if the layer has a 'forward' method
+                        try:
+                            dummy_input = layer(dummy_input)
+                            print(f"Layer {name}, output shape: {dummy_input.shape}")
+                        except Exception as e:
+                            print(f"Layer {name} threw an exception: {e}")
+
 
     # def rand_train_set_cnn(self):
     #     features = torch.randn(100, 1, 128, 4)
