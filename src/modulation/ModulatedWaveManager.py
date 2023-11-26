@@ -1,57 +1,32 @@
-from Modulator import *
+from Modulator import PAM
+from Modulator import PWM
+import numpy as np
 
-num_samples = 10000
+num_samples = 1000
 name = []
-snr = 0
+snr = 20
 
-for i in range(num_samples):
-    # Randomize parameters within specified ranges
-    carrier_amplitude = np.random.uniform(1, 5)
-    message_amplitude = np.random.uniform(1, 5)
-    noise_amplitude = np.random.uniform(0.01, 1)
-    carrier_frequency = np.random.randint(5, 500) 
-    message_frequency = np.random.randint(1, 500)  
-    framerate = np.random.randint(500, 15001)  
-    wave_type = np.random.randint(2)  # Generates either 0 or 1
+while snr > 0 :
+    for j in range(num_samples):
+        # Randomize parameters within specified ranges
+        mess_amp = np.random.randint(1, 5)
+        carrier_amp = np.random.randint(1, 5)
+        message_frequence = np.random.randint(5, 10000)  
+        n_framerate = np.random.randint(1, 5)  
+        framerate = 128
+        offset = np.random.randint(1, 500)  
 
+        # Generate PAM-modulated signal
+        pam_instance = PAM(message_amplitude=mess_amp, carrier_amplitude=carrier_amp, message_freq=message_frequence, duration=1, framerate=framerate, offset=offset, snr_db=snr)
 
-    snr = 10 * np.log10(pow(message_amplitude,2) / pow(noise_amplitude,2))
-    snr = round(snr, 2)
+        # Add Gaussian noise
+        pam_instance.add_gaussian_noise()
 
-    # Generate PAM-modulated signal
-    pam_instance = PAM(message_frequency=message_frequency, message_amplitude=message_amplitude, carrier_amplitude=carrier_amplitude, carrier_frequency=carrier_frequency, duration=1, framerate=10000, wave_type=0)
-    
-    # Add Gaussian noise
-    pam_instance.add_gaussian_noise(amp=noise_amplitude)
+        filename = f"PAM_{snr}_{j}.csv"
+        name.append([filename])
 
-    filename = f"PAM_{i}_{snr}.csv"
-    name.append([i, filename])
+        # Write the PAM-modulated signal to CSV
+        pam_instance.write_to_csv(filename)
+    snr = snr - 1
 
-    # Write the PAM-modulated signal to CSV
-    pam_instance.write_to_csv(filename)
-
-for i in range(num_samples):
-    # Randomize parameters within specified ranges
-    carrier_amplitude = np.random.uniform(1, 5)
-    message_amplitude = np.random.uniform(1, 5)
-    noise_amplitude = np.random.uniform(0.01, 1)
-    carrier_frequency = np.random.randint(5, 500) 
-    message_frequency = np.random.randint(1, 500)  
-    framerate = np.random.randint(500, 15001)  
-    wave_type = np.random.randint(2)  # Generates either 0 or 1
-    snr = 10 * np.log10(pow(message_amplitude,2) / pow(noise_amplitude,2))
-    snr = round(snr, 2)
-
-    # Generate PAM-modulated signal
-    pwm_instance = PWM(message_frequency=message_frequency, message_amplitude=message_amplitude, carrier_amplitude=carrier_amplitude, carrier_frequency=carrier_frequency, duration=1, framerate=framerate, wave_type=wave_type)
-
-    # Add Gaussian noise
-    pwm_instance.add_gaussian_noise(amp=noise_amplitude)
-
-    filename = f"PWM_{i}_{snr}.csv"
-    name.append([i, filename])
-
-    # Write the PAM-modulated signal to CSV
-    pwm_instance.write_to_csv(filename)
-
-
+print("Le programme est finie")
