@@ -2,6 +2,7 @@ import os
 import torch
 from torch.utils.data import Dataset
 import pandas as pd
+import numpy as np
 import random
  
 class WaveformBatchManager(Dataset):
@@ -25,6 +26,7 @@ class WaveformBatchManager(Dataset):
         for data_dir in data_dirs:
             # Ensure the directory exists
             if not os.path.isdir(data_dir):
+                print(f'not a dir {data_dir}')
                 continue
 
             # Add files from this directory to the list
@@ -32,6 +34,7 @@ class WaveformBatchManager(Dataset):
                                if os.path.isfile(os.path.join(data_dir, f))]
 
         # Keep data for evaluation
+        print(f"\n\n\n\n\n\n\nLenght file list : {len(self.file_list)}\n\n\n\n\n")
         random.shuffle(self.file_list)
         split_index = int(len(self.file_list)*(1- eval_ratio))
         self.train_files = self.file_list[:split_index]
@@ -78,8 +81,73 @@ class WaveformBatchManager(Dataset):
                 return False # False = do not skip this row
         return True
 
-# # Example usage
-# transform = transforms.Compose([
-#     # Add any necessary transformations here
-# ])
-# dataset = WaveformBatchManager(data_dir="./data/raw", transform=transform)
+import h5py
+class WaveformBatchManagerHDF5(Dataset):
+    def __init__(self, file, modulation_classes, nb_input, eval_ratio=0.1, transform=None):
+        self.frames_per_modulation = 4096
+        self.points_per_frames = 1024
+        self.snrs = list(range(-2, 20, 2))
+
+        self.file = file
+        self.modulation_classes = modulation_classes
+        self.nb_input = nb_input
+        self.eval_ratio = eval_ratio
+        self.transform = transform
+
+        # Create one array of the index of the items for evaluation and one for training
+        self.eval_indices = np.array([], dtype=int)
+        self.train_indices = np.array([], dtype=int)
+        nb_eval_per_snr = int(self.frames_per_modulation * eval_ratio)
+        
+        for i in range(len(self.snrs) * len(modulation_classes)):
+            # Keep an equal ratio for each snrs indices
+            indices_array = np.arange(self.frames_per_modulation * i, self.frames_per_modulation * (i + 1))
+            # eval indices
+            selected_indices = np.random.choice(indices_array, nb_eval_per_snr, replace=False)
+            self.eval_indices = np.concatenate((self.eval_indices, selected_indices))
+
+            # training indices
+            not_selected_indices = np.setdiff1d(indices_array, selected_indices)
+            self.train_indices = np.concatenate((self.train_indices, not_selected_indices))
+
+        #with h5py.File(self.file, 'r') as f:
+        #    self.data_shape = list(f['X'].shape) #(a, b, c)
+
+        self.mode = 'train'
+        self.current_indices = self.train_indices
+
+    def training_mode(self):
+        self.mode = 'train'
+        self.current_indices = self.train_indices
+
+    def eval_mode(self):
+        self.mode = 'eval'
+        self.current_indices = self.eval_indices
+    
+    def __len__(self):
+        # data shape = (frames, point per frame, channels)
+        return len(self.current_indices)
+    
+    def __getitem__(self, idx):
+
+        idx = self.current_indices[idx]
+
+        signal_1d = np.empty(self.nb_input)
+        with h5py.File(self.file, 'r') as f:
+            signal_2d = f['X'][idx]
+            # Get a random sequence of nb_input(128) in the points_in_frame array
+            start_index = random.randint(0, self.points_per_frames-self.nb_input-1)
+            
+            # Get first column of the IQ signal. 
+            # Get a sequence (128) from start index
+            signal_1d = [row[0] for row in signal_2d[start_index:start_index+self.nb_input]]
+
+        # 0 for the first modulation, 1 for the second...
+        label = int(np.floor(idx/(self.frames_per_modulation*len(self.snrs))))
+
+        if self.transform:
+            self.transform(signal_1d)
+
+        #print(torch.tensor(signal_1d))
+        return torch.tensor(signal_1d), label
+

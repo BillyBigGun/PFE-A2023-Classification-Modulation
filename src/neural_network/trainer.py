@@ -40,20 +40,20 @@ DATA_LOCATION = './data/raw'
 
 
 class Trainer():
-    def __init__(self, model_class : NNModel, hyperparameters, data_dir, batch_size_=32, shuffle_=True, num_workers_=2, transform_=None):
+    def __init__(self, model_class : NNModel, hyperparameters, data_dir=None, train_set= None, batch_size_=32, shuffle_=True, num_workers_=2, transform_=None):
         # create the NN model
         self.model = model_class(hyperparameters)
         self.nb_input = hyperparameters['input_size']
         self.batch_size = batch_size_
         self.shuffle = shuffle_
         self.num_workers = num_workers_
+        self.train_set = train_set
 
         # Create the train set
-        self.train_set = WaveformBatchManager(data_dir, self.nb_input, eval_ratio=0.1, transform=transform_)
+        if train_set is None:
+            self.train_set = WaveformBatchManager(data_dir, self.nb_input, eval_ratio=0.1, transform=transform_)
         #self.train_set = self.rand_train_set_cnn()
-        #self.train_set = self.rand_train_set_t_cnn()
-
-        
+        #self.train_set = self.rand_train_set_t_cnn()        
 
     def train(self, epochs):
         # Create the train loader
@@ -70,7 +70,7 @@ class Trainer():
         accuracy = self.model.evaluate(self.train_loader)
         print(f"Accuracy : {accuracy}")    
 
-    def eval(self, dir):
+    def eval_dir(self, dir):
         """
         Create a new evaluation set from the directory
         """

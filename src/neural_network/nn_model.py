@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ray import tune
+from ray import train
 import time
 
 class NNModel(nn.Module):
@@ -50,8 +50,10 @@ class NNModel(nn.Module):
 
                 # print statistics
                 running_loss += loss.item()
-                if i % 20 == 19:    # print every 2000 mini-batches
-                    print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss))
+
+                nb_mini_batch = 500
+                if i % nb_mini_batch == nb_mini_batch-1:    # print every 20 mini-batches
+                    print('[%5d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss/nb_mini_batch))
                     running_loss = 0.0
 
             epoch_end_time = time.time()  # End time of the current epoch
@@ -99,16 +101,17 @@ class NNModel(nn.Module):
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-                        
-                if i % 20 == 19:    # print every 2000 mini-batches
-                    print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, mini_batch_loss/20))
+
+                nb_mini_batch = 100
+                if i % nb_mini_batch == nb_mini_batch-1:    # print every 100 mini-batches
+                    print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, mini_batch_loss/nb_mini_batch))
                     mini_batch_loss = 0.0
 
             epoch_loss = running_loss / len(train_loader)
             epoch_accuracy = 100 * correct / total
         
             # Rapportez les métriques à Ray Tune
-            tune.report(loss=epoch_loss, accuracy=epoch_accuracy)
+            train.report({'loss': epoch_loss, 'accuracy':epoch_accuracy})
         
             epoch_end_time = time.time()
             print(f'Epoch {epoch + 1} completed in {epoch_end_time - epoch_start_time:.2f} seconds')

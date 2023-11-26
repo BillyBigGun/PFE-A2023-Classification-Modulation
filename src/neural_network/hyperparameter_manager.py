@@ -1,6 +1,7 @@
 import torch.nn.functional as F
+from ray import tune
 
-OUTPUT_SIZE = 3
+OUTPUT_SIZE = 4
 
 class HyperparameterManager():
     def __init__(self) -> None:
@@ -8,8 +9,8 @@ class HyperparameterManager():
         
     def get_ann_parameters(self):
         hyperparameters_ann = dict(
-            input_size = 400,
-            hidden_sizes = [128,128,64,64,32,32,32,32,32,32,32,32,32,32,16,16],
+            input_size = 128,
+            hidden_sizes = [128,64,32,16], #[128,128,64,64,32,32,32,32,32,32,32,32,32,32,16,16],
             output_size = OUTPUT_SIZE,
             learning_rate = 3e-4,
             activation = F.relu,
@@ -38,7 +39,7 @@ class HyperparameterManager():
         layers.append(self.get_conv_layer(block_channels, block_channels, 1))
         return layers
     
-    def get_cnn_parameters_2d(self, nb_filter_cnn_A, nb_filter_cnn_B, nb_filter_cnn_C):
+    def get_cnn_parameters_2d(self, nb_filter_cnn_A, nb_layer_A, nb_filter_cnn_B, nb_layer_B, nb_filter_cnn_C, nb_layer_C, learning_rate=3e-4):
         # in 4x128 --> out before fc = 2x16 = 32
         fc_inputs = 32  # Output before fully connected layer
 
@@ -51,7 +52,7 @@ class HyperparameterManager():
         hyperparameters_cnn = {
             'input_size': 128,
             'output_size': OUTPUT_SIZE,
-            'learning_rate': 3e-4,
+            'learning_rate': learning_rate,
             'blocks': [
                 [layers_A, {'pool': {'type': 'max', 'kernel_size': (2, 1), 'stride': (2, 1)}}],
                 [layers_B, {'pool': {'type': 'max', 'kernel_size': (2, 1), 'stride': (2, 1)}}],
@@ -62,7 +63,7 @@ class HyperparameterManager():
     
         return hyperparameters_cnn
 
-    def get_cnn_parameters_1d(self, nb_filter_cnn_A, nb_layer_A, nb_filter_cnn_B, nb_layer_B, nb_filter_cnn_C, nb_layer_C):
+    def get_cnn_parameters_1d(self, nb_filter_cnn_A, nb_layer_A, nb_filter_cnn_B, nb_layer_B, nb_filter_cnn_C, nb_layer_C, learning_rate=3e-4):
         fc_inputs = 16  # Output before fully connected layer
 
         # Setup Blocks
@@ -74,7 +75,7 @@ class HyperparameterManager():
         hyperparameters_cnn = {
             'input_size': 128,
             'output_size': OUTPUT_SIZE,
-            'learning_rate': 3e-4,
+            'learning_rate': learning_rate,
             'blocks': [
                 [layers_A, {'pool': {'type': 'max', 'kernel_size': (2, 1), 'stride': (2, 1)}}],
                 [layers_B, {'pool': {'type': 'max', 'kernel_size': (2, 1), 'stride': (2, 1)}}],
