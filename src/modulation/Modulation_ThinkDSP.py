@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 from scipy.stats import rayleigh
+from GenerateSignal import signal_power, noise_power
 sys.path.append('../../')
 
 class QPSK:
@@ -72,8 +73,9 @@ class QPSK:
 
             # Carrier Oscillator and applying I and Q to the carrier signal
             r = rayleigh.rvs(size=1)
-            cos_sig_carrier = CosSignal(freq=self.carrier_frequency, amp=r * I_Phase, offset=0)
-            sin_sig_carrier = SinSignal(freq=self.carrier_frequency, amp=r * Q_Phase, offset=0)
+            s = rayleigh.rvs(size=1)
+            cos_sig_carrier = CosSignal(freq=self.carrier_frequency, amp=np.sqrt(2) * r * I_Phase, offset=0)
+            sin_sig_carrier = SinSignal(freq=self.carrier_frequency, amp=np.sqrt(2) * r * Q_Phase, offset=0)
 
             # =================================================================
 
@@ -88,6 +90,30 @@ class QPSK:
 
         return wave
 
+    def add_gaussian_noise(self, wave, snr):
+        pow_ = signal_power(wave)
+        amp = np.sqrt(noise_power(snr, pow_))
+
+        noise_sig = UncorrelatedGaussianNoise(amp=amp)
+
+        noise = noise_sig.make_wave(duration=(self.nb_period-1)*(1/self.carrier_frequency), start=0, framerate=self.frame_rate)
+
+        noisy_QPSK = wave + noise
+
+        # Normalize the noisy PAM wave
+        # noisy_QPSK = noisy_QPSK / max(abs(noisy_QPSK))
+
+        return noisy_QPSK
+
+    def write_to_CSV(self, filename, noisy_qpsk_wave):
+
+        data = list(zip(noisy_qpsk_wave.ys))
+        headers = ["Amplitude"]
+        with open(filename, 'w', newline='') as csvfile:
+            csv_writer = csv.writer(csvfile)
+            csv_writer.writerow(headers)
+            csv_writer.writerows(data)
+
 
 freq = 610
 frame_rate = 9800
@@ -96,27 +122,12 @@ QPSK_mod = QPSK(freq, nbbits, frame_rate)
 
 qpsk = QPSK_mod.modulate_QPSK()
 
-qpsk.plot()
+noisy_QPSK = QPSK_mod.add_gaussian_noise(qpsk,20)
+
+noisy_QPSK.plot()
 plt.show()
 
-noise_signal = UncorrelatedGaussianNoise(amp=0.1)
-noise_wave = noise_signal.make_wave(duration=(QPSK_mod.nb_period-1)*(1/freq), start=0, framerate=frame_rate)
+print(noisy_QPSK.ys.size)
 
-noise_wave.plot()
-plt.show()
 
-noisy_QPSK_wave = qpsk + noise_wave
-print(noisy_QPSK_wave.ys.size)
 
-# Normalize the noisy PAM wave
-# noisy_pwm_wave = self.noisy_pwm_wave / max(abs(self.noisy_pwm_wave))
-
-noisy_QPSK_wave.plot()
-plt.show()
-
-data = list(zip(noisy_QPSK_wave.ys))
-headers = ["Amplitude"]
-with open("QPSK", 'w', newline='') as csvfile:
-    csv_writer = csv.writer(csvfile)
-    csv_writer.writerow(headers)
-    csv_writer.writerows(data)
