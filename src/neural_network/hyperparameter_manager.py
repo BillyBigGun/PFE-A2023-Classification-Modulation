@@ -10,11 +10,11 @@ class HyperparameterManager():
     def get_ann_parameters(self):
         hyperparameters_ann = dict(
             input_size = 128,
-            hidden_sizes = [128,64,32,16], #[128,128,64,64,32,32,32,32,32,32,32,32,32,32,16,16],
+            hidden_sizes = [128,128, 64,64,64,64, 32,32, 16,16], #[128,128,64,64,32,32,32,32,32,32,32,32,32,32,16,16],
             output_size = OUTPUT_SIZE,
-            learning_rate = 3e-4,
+            learning_rate = 0.0005,
             activation = F.relu,
-            normalize_batch = True
+            normalize_batch = False
         )
 
         return hyperparameters_ann
@@ -36,7 +36,7 @@ class HyperparameterManager():
     def get_layers(self, block_channels, num_layers):
         layers = [self.get_conv_layer(block_channels, 1, block_channels)]
         layers += [self.get_conv_layer(block_channels, block_channels, block_channels) for _ in range(num_layers)]
-        layers.append(self.get_conv_layer(block_channels, block_channels, 1))
+        layers.append(self.get_conv_layer(1, block_channels, 1))
         return layers
     
     def get_cnn_parameters_2d(self, nb_filter_cnn_A, nb_layer_A, nb_filter_cnn_B, nb_layer_B, nb_filter_cnn_C, nb_layer_C, learning_rate=3e-4):
@@ -46,7 +46,7 @@ class HyperparameterManager():
         # Setup Blocks
         layers_A = self.get_layers(nb_filter_cnn_A, nb_layer_A)
         layers_B = self.get_layers(nb_filter_cnn_B, nb_layer_B, kernel_size=(3,3), padding = 1)
-        layers_C = self.get_layers(nb_filter_cnn_C, nb_layer_C, kernel_size=(3,3), padding=1)
+        layers_C = self.get_layers(nb_filter_cnn_C, nb_layer_C, kernel_size=(3,3), padding= 1)
         
         # Define hyperparameters
         hyperparameters_cnn = {
@@ -63,7 +63,7 @@ class HyperparameterManager():
     
         return hyperparameters_cnn
 
-    def get_cnn_parameters_1d(self, nb_filter_cnn_A, nb_layer_A, nb_filter_cnn_B, nb_layer_B, nb_filter_cnn_C, nb_layer_C, learning_rate=3e-4):
+    def get_cnn_parameters_1d(self, nb_filter_cnn_A, nb_layer_A, nb_filter_cnn_B, nb_layer_B, nb_filter_cnn_C, nb_layer_C, learning_rate=0.0005):
         fc_inputs = 16  # Output before fully connected layer
 
         # Setup Blocks
@@ -86,7 +86,7 @@ class HyperparameterManager():
     
         return hyperparameters_cnn
 
-    def get_t_cnn_parameters(self, in_channels, num_layers, num_channels_each_layer):
+    def get_t_cnn_parameters(self, in_channels, num_layers, num_channels_each_layer, learning_rate=0.0005):
         
         num_channels = [num_channels_each_layer]*num_layers
 
@@ -96,7 +96,7 @@ class HyperparameterManager():
             'num_channels': num_channels,  # number of output channels for each level of TCN blocks
             'output_size': OUTPUT_SIZE,
             'kernel_size': 3,  # size of the convolutional kernel
-            'learning_rate' : 3e-4,
+            'learning_rate' : learning_rate,
             'dropout': 0.2,  # dropout rate
         }
 

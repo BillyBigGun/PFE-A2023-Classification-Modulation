@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+
+import os
 #import torchvision
 #import torchvision.transforms as transforms
 from nn_model import NNModel
@@ -42,7 +44,9 @@ DATA_LOCATION = './data/raw'
 class Trainer():
     def __init__(self, model_class : NNModel, hyperparameters, data_dir=None, train_set= None, batch_size_=32, shuffle_=True, num_workers_=2, transform_=None):
         # create the NN model
-        self.model = model_class(hyperparameters)
+        if model_class is not None:
+            self.model = model_class(hyperparameters)
+
         self.nb_input = hyperparameters['input_size']
         self.batch_size = batch_size_
         self.shuffle = shuffle_
@@ -80,6 +84,32 @@ class Trainer():
 
         accuracy = self.model.evaluate(self.train_loader)
         print(f"Accuracy : {accuracy}")    
+
+    def eval_by_snr(self, snr_value):
+        self.train_set.eval_mode_snr(snr_value)
+        self.train_loader = torch.utils.data.DataLoader(self.train_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last = True)
+
+        accuracy = self.model.evaluate(self.train_loader)
+        print(f'Accuracy : {accuracy}')
+
+
+    def save_model(self, file_name, dir_path):
+        full_path = os.path.join(dir_path, file_name)
+
+        # Check if directory exists, and if not, create it
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        # Now try saving the model
+        try:
+            torch.save(self.model.state_dict(), full_path)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
+    # the model needs to be with the right architecture
+    def load_model(self, dir_path):
+        self.model.load_state_dict(torch.load(dir_path))
 
     def dry_run_model(self, input_shape):
         """

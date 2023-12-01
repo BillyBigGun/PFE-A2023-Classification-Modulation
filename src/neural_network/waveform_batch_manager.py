@@ -86,7 +86,7 @@ class WaveformBatchManagerHDF5(Dataset):
     def __init__(self, file, modulation_classes, nb_input, eval_ratio=0.1, transform=None):
         self.frames_per_modulation = 4096
         self.points_per_frames = 1024
-        self.snrs = list(range(-2, 20, 2))
+        self.snrs = list(range(-2, 22, 2))
 
         self.file = file
         self.modulation_classes = modulation_classes
@@ -95,7 +95,7 @@ class WaveformBatchManagerHDF5(Dataset):
         self.transform = transform
 
         # Create one array of the index of the items for evaluation and one for training
-        self.eval_indices = np.array([], dtype=int)
+        self.eval_indices = [] #np.array([], dtype=int)
         self.train_indices = np.array([], dtype=int)
         nb_eval_per_snr = int(self.frames_per_modulation * eval_ratio)
         
@@ -104,12 +104,14 @@ class WaveformBatchManagerHDF5(Dataset):
             indices_array = np.arange(self.frames_per_modulation * i, self.frames_per_modulation * (i + 1))
             # eval indices
             selected_indices = np.random.choice(indices_array, nb_eval_per_snr, replace=False)
-            self.eval_indices = np.concatenate((self.eval_indices, selected_indices))
+            self.eval_indices.append(selected_indices)
 
             # training indices
             not_selected_indices = np.setdiff1d(indices_array, selected_indices)
             self.train_indices = np.concatenate((self.train_indices, not_selected_indices))
 
+        # convert to numpy
+        self.eval_indices = np.array(self.eval_indices)
         #with h5py.File(self.file, 'r') as f:
         #    self.data_shape = list(f['X'].shape) #(a, b, c)
 
@@ -120,9 +122,36 @@ class WaveformBatchManagerHDF5(Dataset):
         self.mode = 'train'
         self.current_indices = self.train_indices
 
+
     def eval_mode(self):
         self.mode = 'eval'
-        self.current_indices = self.eval_indices
+
+        self.current_indices = self.eval_indices.flatten()
+        print(len(self.current_indices))
+
+    
+    def eval_mode_snr(self, snr_value):
+        """
+        Get the evaluation array for a specific snr_value
+        """
+        try:
+            snr_index = self.snrs.index(snr_value)
+
+            # snr_index exist
+            self.mode ='eval'        
+            snr_array = np.array([], dtype=int)
+
+            # Get the evaluation data of all modulation at this snr
+            for i in range(len(self.modulation_classes)):
+                current_index = snr_index + i * len(self.snrs)
+                snr_array = np.concatenate((snr_array, self.eval_indices[current_index]))
+            
+            self.current_indices = snr_array
+
+        except ValueError:
+            print(f"No snr at this value : {snr_value}")
+            self.current_indices = None
+
     
     def __len__(self):
         # data shape = (frames, point per frame, channels)
@@ -145,9 +174,10 @@ class WaveformBatchManagerHDF5(Dataset):
         # 0 for the first modulation, 1 for the second...
         label = int(np.floor(idx/(self.frames_per_modulation*len(self.snrs))))
 
+        signal_1d=np.array(signal_1d)
         if self.transform:
-            self.transform(signal_1d)
+            signal_1d = self.transform(signal_1d)
 
         #print(torch.tensor(signal_1d))
-        return torch.tensor(signal_1d), label
+        return torch.from_numpy(signal_1d).float(), label
 
