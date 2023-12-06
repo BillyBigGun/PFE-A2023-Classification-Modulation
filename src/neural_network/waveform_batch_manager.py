@@ -4,11 +4,12 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 import random
+import itertools
  
 class WaveformBatchManager(Dataset):
     """Custom Dataset for loading wave signal data"""
 
-    def __init__(self, data_dirs, nb_inputs, max_first_row_=1, max_stride_rows_=1, eval_ratio=0.1, transform=None):
+    def __init__(self, data_dirs, nb_inputs, eval_ratio=0.1, transform=None):
         """
         Args:
             data_dirs: List of directories containing the stored data.
@@ -20,8 +21,7 @@ class WaveformBatchManager(Dataset):
         """
         self.file_list = []
         self.file_path = []
-        self.max_first_row = max_first_row_
-        self.max_stride_rows = max_stride_rows_
+        self.eval_ratio = eval_ratio
         
         for data_dir in data_dirs:
             # Ensure the directory exists
@@ -33,54 +33,106 @@ class WaveformBatchManager(Dataset):
             self.file_list += [os.path.join(data_dir, f) for f in os.listdir(data_dir) 
                                if os.path.isfile(os.path.join(data_dir, f))]
 
+        self.snr_file_list, self.snr_index = self.organise_files_by_snr()
         # Keep data for evaluation
-        print(f"\n\n\n\n\n\n\nLenght file list : {len(self.file_list)}\n\n\n\n\n")
-        random.shuffle(self.file_list)
-        split_index = int(len(self.file_list)*(1- eval_ratio))
-        self.train_files = self.file_list[:split_index]
-        self.eval_files = self.file_list[split_index:]
-        
+        print(f"\n\nLenght file list : {len(self.file_list)}\n\n")
+        self.train_files, self.eval_files = self.create_train_eval_list()
+
         self.nb_inputs = nb_inputs
         self.transform = transform
 
+
+    def organise_files_by_snr(self):
+         # Initialize a dictionary to hold files sorted by SNR
+        snr_dict = {}
+        snr_index = {}
+        index = 0
+
+        # Iterate over the file list
+        for file in self.file_list:
+            # Extract the SNR value from the file name
+            # Assuming file name format is '../../folderName_SNRValue_index'
+            # Keep the last part of the hole file name
+            file_name = file.split('/')[-1]
+
+            parts = file_name.split('_')
+            snr_value = int(parts[1])
+
+            # Append the file to the correct SNR list in the dictionary
+            if snr_value not in snr_dict:
+                print(f'Adding SNR value: {snr_value}')
+                snr_dict[snr_value] = []
+                snr_index[snr_value] = index
+                index += 1
+            snr_dict[snr_value].append(file)
+
+        # Convert the dictionary to a 2D list
+        snr_file_list = list(snr_dict.values())
+
+        return snr_file_list, snr_index
+    
+    def create_train_eval_list(self):
+        train_list = []
+        eval_list = []
+
+        for snr_subset in self.snr_file_list:
+            #print(len(snr_subset))
+            random.shuffle(snr_subset)
+            split_index = int(len(snr_subset) * self.eval_ratio)
+            train_list.append(snr_subset[split_index:])
+            eval_list.append(snr_subset[:split_index])
+
+        return train_list, eval_list
+    
     def training_mode(self):
         self.mode = 'train'
-        self.file_list = self.train_files
+
+        # flatten the list
+        self.file_list = list(itertools.chain(*self.train_files))
 
     def eval_mode(self):
         self.mode = 'eval'
-        self.file_list = self.eval_files
+        self.file_list = list(itertools.chain(*self.eval_files))
+
+    def eval_mode_snr(self, snr_value):
+        # get the the correct index for the specified snr_value
+        if snr_value in self.snr_index:
+            self.mode = 'eval'
+            self.file_list = self.eval_files[self.snr_index[snr_value]]
+        else:
+            print(self.snr_index)
+            print("SNR value does not exist")
 
     def __len__(self):
         return len(self.file_list)
 
     def __getitem__(self, idx):
         file_name = self.file_list[idx]
+        #print(file_name)
         #file_path = os.path.join(self.data_dir, file_name)
         
         # Load only the first 128 data points from the CSV file
-        # Skip rows before the first index and every divisible by the nb_skip_rows_values
-        # these values are random
-        #self.first_row = random.randint(1, self.max_first_row)
-        #self.stride_row = random.randint(1, self.max_stride_rows)
-        signal = pd.read_csv(file_name, usecols=[0], nrows=self.nb_inputs, skiprows=1).values.flatten() # call the skip_rows function
-        # print(signal)
-
+        signal = pd.read_csv(file_name, usecols=[0], nrows=self.nb_inputs, skiprows=0).values.flatten() # call the skip_rows function
+  
         # Convert label 'PAM' to 0 and 'PWM' to 1
-        label = 0 if 'PAM' in file_name else 1
+        if 'PAM' in file_name:
+            label = 0
+        elif 'PWM' in file_name:
+            label = 1
+        elif 'QPSK' in file_name:
+            label = 2
+        else:
+            label = 3
 
         if self.transform:
             signal = self.transform(signal)
-        return torch.from_numpy(signal).float(), label
+        signal =  torch.from_numpy(signal).float() 
+        return signal, label
 
 
-    def skip_rows(self, index):
-        if self.first_row < index:
-            if (index + self.first_row) % self.stride_row == 0 : # Skip every row except those divisible by nb_skip_rows
-                #print(f"index : {index}")
-                return False # False = do not skip this row
-        return True
-
+# ==================================================================
+#               HDF5 SECTION
+#===================================================================
 import h5py
 class WaveformBatchManagerHDF5(Dataset):
     def __init__(self, file, modulation_classes, nb_input, eval_ratio=0.1, transform=None):

@@ -86,9 +86,9 @@ class HyperparameterManager():
     
         return hyperparameters_cnn
 
-    def get_t_cnn_parameters(self, in_channels, num_layers, num_channels_each_layer, learning_rate=0.0005):
+    def get_t_cnn_parameters(self, in_channels, num_channels, learning_rate=0.0005):
         
-        num_channels = [num_channels_each_layer]*num_layers
+        #num_channels = [num_channels_each_layer]*num_layers
 
         hyperparameters_t_cnn = {
             'input_size': 128, 

@@ -42,10 +42,10 @@ DATA_LOCATION = './data/raw'
 
 
 class Trainer():
-    def __init__(self, model_class : NNModel, hyperparameters, data_dir=None, train_set= None, batch_size_=32, shuffle_=True, num_workers_=2, transform_=None):
+    def __init__(self, model_class : NNModel, hyperparameters, train_set= None, batch_size_=32, shuffle_=True, num_workers_=2, transform_=None):
         # create the NN model
-        if model_class is not None:
-            self.model = model_class(hyperparameters)
+        self.model = model_class(hyperparameters)
+
 
         self.nb_input = hyperparameters['input_size']
         self.batch_size = batch_size_
@@ -53,9 +53,7 @@ class Trainer():
         self.num_workers = num_workers_
         self.train_set = train_set
 
-        # Create the train set
-        if train_set is None:
-            self.train_set = WaveformBatchManager(data_dir, self.nb_input, eval_ratio=0.1, transform=transform_)
+       
         #self.train_set = self.rand_train_set_cnn()
         #self.train_set = self.rand_train_set_t_cnn()        
 
@@ -64,8 +62,8 @@ class Trainer():
         self.train_set.training_mode()
         self.train_loader = torch.utils.data.DataLoader(self.train_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last = True)
         
-        self.model.train_model(self.train_loader, epochs)
-        return
+        loss_per_epoch = self.model.train_model(self.train_loader, epochs)
+        return loss_per_epoch
 
     def eval(self):
         self.train_set.eval_mode()
@@ -74,22 +72,24 @@ class Trainer():
         accuracy = self.model.evaluate(self.train_loader)
         print(f"Accuracy : {accuracy}")    
 
-    def eval_dir(self, dir):
-        """
-        Create a new evaluation set from the directory
-        """
-        self.eval_set = WaveformBatchManager(data_dir, self.nb_input, eval_ratio=1, transform=transform_)
-        self.eval_set.eval_mode()
-        self.train_loader = torch.utils.data.DataLoader(self.eval_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last = True)
+    # def eval_dir(self, dir):
+    #     """
+    #     Create a new evaluation set from the directory
+    #     """
+    #     self.eval_set = WaveformBatchManager(data_dir, self.nb_input, eval_ratio=1, transform=transform_)
+    #     self.eval_set.eval_mode()
+    #     self.train_loader = torch.utils.data.DataLoader(self.eval_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last = True)
 
-        accuracy = self.model.evaluate(self.train_loader)
-        print(f"Accuracy : {accuracy}")    
+    #     accuracy = self.model.evaluate(self.train_loader)
+    #     return accuracy
+    #     print(f"Accuracy : {accuracy}")    
 
     def eval_by_snr(self, snr_value):
         self.train_set.eval_mode_snr(snr_value)
         self.train_loader = torch.utils.data.DataLoader(self.train_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last = True)
 
         accuracy = self.model.evaluate(self.train_loader)
+        return accuracy
         print(f'Accuracy : {accuracy}')
 
 
@@ -108,8 +108,9 @@ class Trainer():
 
 
     # the model needs to be with the right architecture
-    def load_model(self, dir_path):
-        self.model.load_state_dict(torch.load(dir_path))
+    def load_model(self, file_name, dir_path):
+        full_path = os.path.join(dir_path, file_name)
+        self.model.load_state_dict(torch.load(full_path))
 
     def dry_run_model(self, input_shape):
         """

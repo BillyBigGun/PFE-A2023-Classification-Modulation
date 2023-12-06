@@ -34,6 +34,8 @@ class NNModel(nn.Module):
         best_val_loss = float('inf')
         epochs_no_improve = 0
 
+        loss_per_epoch = [];
+
         for epoch in range(epochs):  # loop over the dataset multiple times
             epoch_start_time = time.time()  # Start time of the current epoch
             running_loss = 0.0
@@ -67,8 +69,11 @@ class NNModel(nn.Module):
 
                 mini_batch_loss = self.print_mini_batch(i, nb_mini_batch_print, epoch, mini_batch_loss)
 
+
             epoch_loss = running_loss / len(train_loader)
             epoch_accuracy = 100 * correct / total
+
+            loss_per_epoch.append(epoch_loss)
 
             # Early stopping logic
             if epoch_loss +0.01< best_val_loss:
@@ -86,6 +91,8 @@ class NNModel(nn.Module):
 
         end_time = time.time()  # End time of the entire training
         print(f'Finished Training in {end_time - start_time:.8f} seconds')
+
+        return loss_per_epoch
 
     def train_tune_model(self, train_loader, epochs, patience=3):
         criterion = torch.nn.CrossEntropyLoss()
@@ -108,6 +115,7 @@ class NNModel(nn.Module):
             total = 0
             correct = 0
 
+            nb_error = 0
 
             for i, data in enumerate(train_loader, 0):
                 # get the inputs; data is a list of [inputs, labels]
@@ -115,21 +123,23 @@ class NNModel(nn.Module):
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
+                try:
+                    # forward + backward + optimize
+                    outputs = self.forward(inputs)
+                    loss = criterion(outputs, labels)
+                    loss.backward()
+                    optimizer.step()
 
-                # forward + backward + optimize
-                outputs = self.forward(inputs)
-                loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
+                    # print statistics
+                    running_loss += loss.item()
+                    mini_batch_loss += loss.item()
 
-                # print statistics
-                running_loss += loss.item()
-                mini_batch_loss += loss.item()
-
-                # Calcul des prédictions correctes
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                    # Calcul des prédictions correctes
+                    _, predicted = torch.max(outputs.data, 1)
+                    total += labels.size(0)
+                    correct += (predicted == labels).sum().item()
+                except:
+                    nb_error = nb_error +1
 
                 
                 # if i % nb_mini_batch == nb_mini_batch-1:    # print every 100 mini-batches
@@ -155,7 +165,8 @@ class NNModel(nn.Module):
         
             epoch_end_time = time.time()
             print(f'Epoch {epoch + 1} completed in {epoch_end_time - epoch_start_time:.2f} seconds')
-                    
+
+            print(f'Nb errror: {nb_error}')                    
 
         end_time = time.time()  # End time of the entire training
         print(f'Finished Training in {end_time - start_time:.8f} seconds')
@@ -212,6 +223,7 @@ class NNModel(nn.Module):
         # Switch back to train mode
         self.train()
         end_time = time.time()  # End time of the entire training
+        return accuracy
         print(f'Finished evaluation in {end_time - start_time:.8f} seconds')
         
         return accuracy      
