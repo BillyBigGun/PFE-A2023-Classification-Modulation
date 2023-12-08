@@ -21,7 +21,7 @@ while snr > 0:
 
         # Add Gaussian noise
 
-        noisy_QPSK = QPSK_mod.add_gaussian_noise(qpsk, snr)
+        noisy_QPSK = QPSK_mod.add_gaussian_noise(qpsk, -1*snr)
 
         filename = f"QPSK_{snr}_{j}.csv"
         name.append([filename])

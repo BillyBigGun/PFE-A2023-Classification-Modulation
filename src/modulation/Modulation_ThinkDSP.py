@@ -15,8 +15,9 @@ class QPSK:
         self.size_message = nb_bits
         self.nb_period = 0
 
-    def modulate_QPSK(self):
+    def modulate_QPSK(self, fading_on=True):
         i = 0
+        rng = np.random.default_rng()
         I_Phase = 0
         Q_Phase = 0
         start = 0
@@ -72,10 +73,18 @@ class QPSK:
             # =================================================================
 
             # Carrier Oscillator and applying I and Q to the carrier signal
-            r = rayleigh.rvs(size=1)
-            s = rayleigh.rvs(size=1)
-            cos_sig_carrier = CosSignal(freq=self.carrier_frequency, amp=np.sqrt(2) * r * I_Phase, offset=0)
-            sin_sig_carrier = SinSignal(freq=self.carrier_frequency, amp=np.sqrt(2) * r * Q_Phase, offset=0)
+            if fading_on:
+                r = rng.rayleigh()
+                s = rng.rayleigh()
+
+                r_pdf = rayleigh.pdf(r)
+                s_pdf = rayleigh.pdf(s)
+            else:
+                s_pdf = 0
+                r_pdf = 1
+
+            cos_sig_carrier = CosSignal(freq=self.carrier_frequency, amp=np.sqrt(2) * r_pdf * I_Phase, offset=s_pdf*2*np.pi)
+            sin_sig_carrier = SinSignal(freq=self.carrier_frequency, amp=np.sqrt(2) * r_pdf * Q_Phase, offset=s_pdf*2*np.pi)
 
             # =================================================================
 
@@ -96,12 +105,12 @@ class QPSK:
 
         noise_sig = UncorrelatedGaussianNoise(amp=amp)
 
-        noise = noise_sig.make_wave(duration=(self.nb_period-1)*(1/self.carrier_frequency), start=0, framerate=self.frame_rate)
+        noise = noise_sig.make_wave(duration=(self.nb_period-1)*(1/(self.carrier_frequency)), start=0, framerate=self.frame_rate)
 
         noisy_QPSK = wave + noise
 
         # Normalize the noisy PAM wave
-        # noisy_QPSK = noisy_QPSK / max(abs(noisy_QPSK))
+        noisy_QPSK.ys = noisy_QPSK.ys / max(abs(noisy_QPSK.ys))
 
         return noisy_QPSK
 
@@ -115,14 +124,14 @@ class QPSK:
             csv_writer.writerows(data)
 
 
-freq = 610
-frame_rate = 9800
-nbbits = 15
+freq = 400
+frame_rate = 20000
+nbbits = 10
 QPSK_mod = QPSK(freq, nbbits, frame_rate)
 
-qpsk = QPSK_mod.modulate_QPSK()
+qpsk = QPSK_mod.modulate_QPSK(fading_on=False)
 
-noisy_QPSK = QPSK_mod.add_gaussian_noise(qpsk,20)
+noisy_QPSK = QPSK_mod.add_gaussian_noise(qpsk, 20)
 
 noisy_QPSK.plot()
 plt.show()
