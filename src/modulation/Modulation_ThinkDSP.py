@@ -124,19 +124,50 @@ class QPSK:
             csv_writer.writerows(data)
 
 
-freq = 400
-frame_rate = 20000
-nbbits = 10
+freq = 50000
+frame_rate = 1000000
+nbbits = 30
 QPSK_mod = QPSK(freq, nbbits, frame_rate)
 
-qpsk = QPSK_mod.modulate_QPSK(fading_on=False)
+fade = True
+qpsk = QPSK_mod.modulate_QPSK(fading_on=fade)
 
-noisy_QPSK = QPSK_mod.add_gaussian_noise(qpsk, 20)
-
-noisy_QPSK.plot()
+qpsk.plot()
+plt.title("QPSK amplitude depending on time")
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.grid()
 plt.show()
 
-print(noisy_QPSK.ys.size)
+noisy_QPSK_20 = QPSK_mod.add_gaussian_noise(qpsk, -20)
+noisy_QPSK_15 = QPSK_mod.add_gaussian_noise(qpsk, -15)
+noisy_QPSK_10 = QPSK_mod.add_gaussian_noise(qpsk, -10)
+
+plt.subplot(3, 1, 1)
+noisy_QPSK_10.plot()
+plt.title("QPSK amplitude depending on time at 20 SNR")
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.grid()
+
+plt.subplot(3, 1, 2)
+noisy_QPSK_15.plot()
+plt.title("QPSK amplitude depending on time at 15 SNR")
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.grid()
+
+plt.subplot(3, 1, 3)
+noisy_QPSK_20.plot()
+plt.title("QPSK amplitude depending on time at 10 SNR")
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.grid()
+
+plt.tight_layout()
+plt.show()
+
+print(noisy_QPSK_10.ys.size)
 
 
 
